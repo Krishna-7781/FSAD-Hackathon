@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Card buttons (Home page) */
+.card-btn {
+  @apply text-white px-10 py-8 rounded-xl text-xl font-semibold shadow-lg hover:scale-105 transition duration-300 text-center;
+}
+
+/* Page container */
+.page-container {
+  @apply max-w-4xl mx-auto bg-white dark:bg-gray-800 text-black dark:text-white p-6 rounded-xl shadow mt-10;
+}
+
+/* Input fields */
+.input {
+  @apply w-full border rounded p-2 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400;
+}
+
+/* Buttons */
+.btn-blue {
+  @apply w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600;
+}
+
+.btn-green {
+  @apply w-full bg-green-500 text-white py-2 rounded hover:bg-green-600;
+}
+
+.btn-purple {
+  @apply w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600;
+}
+/* Navbar links */
+.nav-link {
+  @apply text-gray-700 font-medium hover:text-blue-600 transition;
+}
+
+/* Back button */
+.back-btn {
+  @apply inline-block mb-4 text-sm text-blue-600 hover:underline cursor-pointer;
+}
+/* Smooth fade animation */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Table styling */
+.table {
+  @apply w-full border rounded-lg overflow-hidden;
+}
+
+.table th {
+  @apply bg-gray-100 p-3 text-left;
+}
+
+.table td {
+  @apply p-3 border-t;
+}
+
+/* Card shadow enhancement */
+.card {
+  @apply bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition;
+}
+/* Glass effect cards */
+.glass-card {
+  @apply backdrop-blur-lg bg-white/20 border border-white/30 
+  shadow-xl rounded-2xl p-8 text-white text-center 
+  hover:scale-105 transition duration-300 cursor-pointer;
+}
+
+/* Gradient background */
+.gradient-bg {
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+/* Dark mode base */
+.dark {
+  background-color: #111827;
+  color: white;
+}
