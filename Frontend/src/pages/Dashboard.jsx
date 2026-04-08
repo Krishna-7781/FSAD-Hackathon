@@ -17,7 +17,7 @@ function Dashboard() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/dashboard")
+    axios.get("https://fsad-hackathon-1.onrender.com/api/dashboard")
       .then(res => setData(res.data))
       .catch(err => console.error(err));
   }, []);
