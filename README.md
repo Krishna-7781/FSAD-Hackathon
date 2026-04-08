@@ -140,9 +140,9 @@ npm run dev
 
 ## 👨‍💻 Author
 
-A Sudarsan Krishna
-N Sai Suhaas
-P Rakesh
+A Sudarsan Krishna,
+N Sai Suhaas,
+P Rakesh,
 Y Karthikeya
 
 ---
