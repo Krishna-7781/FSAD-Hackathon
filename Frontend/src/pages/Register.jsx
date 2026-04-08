@@ -19,7 +19,7 @@ function Register() {
   const [citizenId, setCitizenId] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:5000/centers")
+    axios.get("https://fsad-hackathon-1.onrender.com/api/centers")
       .then(res => setCenters(res.data))
       .catch(() => alert("Error loading centers"));
   }, []);
