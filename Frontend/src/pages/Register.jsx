@@ -32,7 +32,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/register", form);
+      const res = await axios.post("https://fsad-hackathon-1.onrender.com/api/register", form);
       setCitizenId(res.data.citizen_id);
       setSuccess(true);
     } catch {
