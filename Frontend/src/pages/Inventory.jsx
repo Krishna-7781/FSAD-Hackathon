@@ -13,7 +13,7 @@ function Inventory() {
   const [centers, setCenters] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/centers")
+    axios.get("https://fsad-hackathon-1.onrender.com/api/centers")
       .then(res => setCenters(res.data));
   }, []);
 
