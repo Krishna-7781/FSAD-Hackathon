@@ -1,12 +1,12 @@
 const express = require("express");
 const cors = require("cors");
-const mysql = require("mysql2");
 const { v4: uuidv4 } = require("uuid");
 const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // ✅ Middleware
 app.use(cors());
@@ -19,52 +19,37 @@ if (!fs.existsSync(qrFolder)) {
 }
 app.use("/qr", express.static(qrFolder));
 
-// ✅ DB Connection (IMPORTANT: use promise wrapper)
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "msd@7781",
-  database: "vaccination_db"
-});
+// ✅ Dummy Data Storage
+let citizens = [];
+let appointments = [];
+let certificates = [];
+let doseRecords = [];
 
-const dbPromise = db.promise();
+// ✅ Dummy Centers
+const centers = [
+  { id: 1, name: "Center 1", location: "Hyderabad", pincode: "500001" },
+  { id: 2, name: "Center 2", location: "Delhi", pincode: "110001" },
+  { id: 3, name: "Center 3", location: "Mumbai", pincode: "400001" }
+];
 
-db.connect((err) => {
-  if (err) console.log("DB connection failed", err);
-  else console.log("MySQL Connected");
-});
-
-// ✅ Test
+// ✅ Root test
 app.get("/", (req, res) => {
   res.send("Server running");
 });
 
-app.get("/test-db", async (req, res) => {
-  try {
-    await dbPromise.query("SELECT 1");
-    res.send("Database working");
-  } catch (err) {
-    res.send(err);
-  }
+// ✅ IMPORTANT TEST ROUTE (for debugging)
+app.get("/api/test", (req, res) => {
+  res.send("API working");
 });
 
-// ✅ Get Centers
-app.get("/centers", async (req, res) => {
-  try {
-    const [rows] = await dbPromise.query(`
-      SELECT id, name, location, pincode 
-      FROM vaccination_centers
-    `);
-
-    res.send(rows);
-
-  } catch (err) {
-    res.status(500).send("Error fetching centers");
-  }
+// ✅ Get Centers (MAIN FIX)
+app.get("/api/centers", (req, res) => {
+  console.log("✅ /api/centers hit");
+  res.json(centers);
 });
 
 // ✅ Register
-app.post("/register", async (req, res) => {
+app.post("/api/register", (req, res) => {
   const { name, aadhaar, age, center_id, date } = req.body;
 
   if (!name || !aadhaar || !age || !center_id || !date) {
@@ -75,77 +60,56 @@ app.post("/register", async (req, res) => {
     return res.status(400).send("Not eligible");
   }
 
-  try {
-    const [citizenResult] = await dbPromise.query(
-      "INSERT INTO citizens (name, aadhaar, age) VALUES (?, ?, ?)",
-      [name, aadhaar, age]
-    );
+  const citizen_id = citizens.length + 1;
 
-    const citizen_id = citizenResult.insertId;
+  citizens.push({ id: citizen_id, name, aadhaar, age });
+  appointments.push({ citizen_id, center_id, date });
 
-    await dbPromise.query(
-      "INSERT INTO appointments (citizen_id, center_id, date) VALUES (?, ?, ?)",
-      [citizen_id, center_id, date]
-    );
-
-    res.send({
-      message: "Registration successful & slot booked",
-      citizen_id
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Registration failed");
-  }
+  res.send({
+    message: "Registration successful & slot booked",
+    citizen_id
+  });
 });
 
-// ✅ ADMINISTER (🔥 FIXED MAIN ISSUE)
-app.post("/administer", async (req, res) => {
+// ✅ Administer
+app.post("/api/administer", async (req, res) => {
   const { citizen_id, vaccine_name, dose_number } = req.body;
 
   if (!citizen_id || !vaccine_name || !dose_number) {
     return res.status(400).send("All fields required");
   }
 
+  const citizen = citizens.find(c => c.id == citizen_id);
+
+  if (!citizen) {
+    return res.status(404).send("Invalid Citizen ID");
+  }
+
   const certId = uuidv4();
 
   try {
-    // 🔥 1. Get correct citizen
-    const [rows] = await dbPromise.query(
-      "SELECT name FROM citizens WHERE id = ?",
-      [citizen_id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).send("Invalid Citizen ID");
-    }
-
-    const citizenName = rows[0].name;
-
-    // 🔥 2. Generate QR
     const qrPath = path.join(qrFolder, `qr_${certId}.png`);
+
     await QRCode.toFile(
       qrPath,
-      `http://localhost:5173/verify/${certId}`
+      `https://fsad-hackathon-1.onrender.com/api/verify/${certId}`
     );
 
-    // 🔥 3. Insert dose
-    await dbPromise.query(
-      "INSERT INTO dose_records (citizen_id, vaccine_name, dose_number) VALUES (?, ?, ?)",
-      [citizen_id, vaccine_name, dose_number]
-    );
+    doseRecords.push({
+      citizen_id,
+      vaccine_name,
+      dose_number
+    });
 
-    // 🔥 4. Insert certificate
-    await dbPromise.query(
-      "INSERT INTO certificates (cert_id, citizen_id) VALUES (?, ?)",
-      [certId, citizen_id]
-    );
+    certificates.push({
+      cert_id: certId,
+      citizen_id
+    });
 
-    // 🔥 5. SEND NAME (THIS FIXES YOUR BUG)
     res.send({
       message: "Dose recorded & certificate generated",
       certId,
-      name: citizenName
+      name: citizen.name
     });
 
   } catch (err) {
@@ -155,70 +119,49 @@ app.post("/administer", async (req, res) => {
 });
 
 // ✅ Verify
-app.get("/verify/:certId", async (req, res) => {
+app.get("/api/verify/:certId", (req, res) => {
   const certId = req.params.certId;
 
-  try {
-    const [rows] = await dbPromise.query(`
-      SELECT c.cert_id, ct.name, d.vaccine_name, d.dose_number
-      FROM certificates c
-      JOIN citizens ct ON c.citizen_id = ct.id
-      JOIN dose_records d ON ct.id = d.citizen_id
-      WHERE c.cert_id = ?
-    `, [certId]);
+  const cert = certificates.find(c => c.cert_id === certId);
 
-    if (rows.length > 0) {
-      res.send({ valid: true, data: rows });
-    } else {
-      res.send({ valid: false });
-    }
-
-  } catch (err) {
-    res.status(500).send("Verification error");
+  if (!cert) {
+    return res.send({ valid: false });
   }
+
+  const citizen = citizens.find(c => c.id === cert.citizen_id);
+  const doses = doseRecords.filter(d => d.citizen_id === cert.citizen_id);
+
+  res.send({
+    valid: true,
+    data: {
+      name: citizen.name,
+      doses
+    }
+  });
 });
 
 // ✅ Dashboard
-app.get("/dashboard", async (req, res) => {
-  try {
-    const [rows] = await dbPromise.query(`
-      SELECT 
-        vc.name AS center_name,
-        a.date,
-        COUNT(d.id) AS total_doses
-      FROM dose_records d
-      JOIN citizens c ON d.citizen_id = c.id
-      JOIN appointments a ON c.id = a.citizen_id
-      JOIN vaccination_centers vc ON a.center_id = vc.id
-      GROUP BY vc.name, a.date
-      ORDER BY a.date DESC
-    `);
+app.get("/api/dashboard", (req, res) => {
+  const result = appointments.map(a => {
+    const center = centers.find(c => c.id == a.center_id);
+    const doseCount = doseRecords.filter(d => d.citizen_id === a.citizen_id).length;
 
-    res.send(rows);
+    return {
+      center_name: center?.name,
+      date: a.date,
+      total_doses: doseCount
+    };
+  });
 
-  } catch (err) {
-    res.status(500).send("Dashboard error");
-  }
+  res.send(result);
 });
 
 // ✅ Inventory
-app.post("/inventory", async (req, res) => {
-  const { center_id, vaccine_name, total_received, total_used } = req.body;
-
-  try {
-    await dbPromise.query(`
-      INSERT INTO vaccine_inventory (center_id, vaccine_name, total_received, total_used)
-      VALUES (?, ?, ?, ?)
-    `, [center_id, vaccine_name, total_received, total_used]);
-
-    res.send({ message: "Inventory updated" });
-
-  } catch (err) {
-    res.status(500).send("Inventory error");
-  }
+app.post("/api/inventory", (req, res) => {
+  res.send({ message: "Inventory updated (dummy)" });
 });
 
-// ✅ Start
-app.listen(5000, () => {
-  console.log("Server started on port 5000");
+// ✅ Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
