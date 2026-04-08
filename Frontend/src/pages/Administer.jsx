@@ -26,7 +26,7 @@ function Administer() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/administer",
+        "https://fsad-hackathon-1.onrender.com/api/administer",
         form
       );
 
