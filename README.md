@@ -66,6 +66,7 @@ A full-stack web application to manage vaccination registration, dose administra
 
 ## 📁 Project Structure
 
+```
 FSAD-Hackathon/
 │
 ├── Frontend/ # React App
@@ -77,6 +78,7 @@ FSAD-Hackathon/
 │ ├── server.js
 │
 └── Database/ # (Optional/Schema)
+```
 
 ---
 
